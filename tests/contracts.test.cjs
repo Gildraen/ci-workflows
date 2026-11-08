@@ -64,7 +64,7 @@ test('maintenance preserves defaults and failing lychee invocation', () => {
   } } });
   assert.deepEqual(workflow.jobs, { 'check-links': {
     name: 'Check docs links', 'runs-on': 'ubuntu-latest', 'timeout-minutes': 10,
-    steps: [checkout, {
+    steps: [{ ...checkout, with: { submodules: 'recursive' } }, {
       name: 'Check links', uses: 'lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8',
       with: {
         args: '--no-progress --exclude-loopback ${{ inputs.link-check-excludes }} ${{ inputs.link-check-paths }}\n',
