@@ -1,0 +1,9 @@
+name: Pilot devcontainer test
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    uses: Gildraen/ci-workflows/.github/workflows/reusable-devcontainer-test.yml@feat/component-extraction
+    secrets: inherit

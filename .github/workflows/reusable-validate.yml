@@ -1,0 +1,36 @@
+name: reusable-validate
+
+on:
+  workflow_call:
+    inputs:
+      task-name:
+        description: Task to run for the "validate" contract.
+        type: string
+        default: validate
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Cache Task directories
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: |
+            ~/.cache/task
+            ~/.task
+          key: ${{ runner.os }}-task-${{ hashFiles('Taskfile.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-task-
+
+      - uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2
+        with:
+          version: 3.53.1
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run consumer validate contract
+        env:
+          TASK_REMOTE_TRUSTED_HOSTS: github.com
+        run: task ${{ inputs.task-name }}
