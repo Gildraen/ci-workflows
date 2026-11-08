@@ -1,0 +1,9 @@
+{
+  "name": "CI workflows pilot",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers-extra/features/go-task:1": {
+      "version": "3.53.1"
+    }
+  }
+}

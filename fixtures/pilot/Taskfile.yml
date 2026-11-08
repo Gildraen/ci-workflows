@@ -1,0 +1,17 @@
+version: '3'
+
+tasks:
+  validate:
+    desc: Check trust and consumer configuration.
+    cmds:
+      - test "$TASK_REMOTE_TRUSTED_HOSTS" = github.com
+      - test -f .devcontainer/devcontainer.json
+  test:
+    desc: Check files in the consumer checkout.
+    cmds:
+      - test -f Taskfile.yml
+      - test -f .devcontainer/devcontainer.json
+  fail:
+    desc: Return an intentional failure.
+    cmds:
+      - 'false'

@@ -1,0 +1,8 @@
+name: Pilot maintenance
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check-links:
+    uses: Gildraen/ci-workflows/.github/workflows/reusable-maintenance.yml@feat/component-extraction
