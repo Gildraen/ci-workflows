@@ -1,0 +1,19 @@
+name: Pilot validate
+on:
+  workflow_dispatch:
+    inputs:
+      task-name:
+        type: choice
+        default: validate
+        options:
+          - validate
+          - fail
+          - missing
+permissions:
+  contents: read
+jobs:
+  validate:
+    uses: Gildraen/ci-workflows/.github/workflows/reusable-validate.yml@feat/component-extraction
+    with:
+      task-name: ${{ inputs.task-name }}
+    secrets: inherit
