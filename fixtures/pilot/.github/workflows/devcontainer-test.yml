@@ -5,5 +5,5 @@ permissions:
   contents: read
 jobs:
   test:
-    uses: Gildraen/ci-workflows/.github/workflows/reusable-devcontainer-test.yml@feat/component-extraction
+    uses: Gildraen/ci-workflows/.github/workflows/reusable-devcontainer-test.yml@v0.1.0-rc.1
     secrets: inherit

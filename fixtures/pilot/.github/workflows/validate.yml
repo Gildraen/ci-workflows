@@ -13,7 +13,7 @@ permissions:
   contents: read
 jobs:
   validate:
-    uses: Gildraen/ci-workflows/.github/workflows/reusable-validate.yml@feat/component-extraction
+    uses: Gildraen/ci-workflows/.github/workflows/reusable-validate.yml@v0.1.0-rc.1
     with:
       task-name: ${{ inputs.task-name }}
     secrets: inherit

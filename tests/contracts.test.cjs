@@ -6,7 +6,7 @@ const { join } = require('node:path');
 const { spawnSync } = require('node:child_process');
 const yaml = require('js-yaml');
 
-const checkout = { uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' };
+const checkout = { uses: 'actions/checkout@v7.0.1' };
 const load = name => yaml.load(readFileSync(`.github/workflows/reusable-${name}.yml`, 'utf8'));
 
 test('validate preserves inputs, cache, Task version, trust and command', () => {
@@ -19,14 +19,14 @@ test('validate preserves inputs, cache, Task version, trust and command', () => 
     'runs-on': 'ubuntu-latest', 'timeout-minutes': 10,
     steps: [checkout, {
       name: 'Cache Task directories',
-      uses: 'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9',
+      uses: 'actions/cache@v6.1.0',
       with: {
         path: '~/.cache/task\n~/.task\n',
         key: "${{ runner.os }}-task-${{ hashFiles('Taskfile.yml') }}",
         'restore-keys': '${{ runner.os }}-task-\n',
       },
     }, {
-      uses: 'go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e',
+      uses: 'go-task/setup-task@v2.2.0',
       with: { version: '3.53.1', 'repo-token': '${{ secrets.GITHUB_TOKEN }}' },
     }, {
       name: 'Run consumer validate contract',
@@ -44,7 +44,7 @@ test('devcontainer preserves checkout, config, command and no push', () => {
     'runs-on': 'ubuntu-latest', 'timeout-minutes': 20,
     steps: [checkout, {
       name: 'Run task test in the dx devcontainer',
-      uses: 'devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca',
+      uses: 'devcontainers/ci@v0.3.1900000450',
       with: { configFile: '.devcontainer/devcontainer.json', push: 'never', runCmd: 'task test' },
     }],
   } });
@@ -65,7 +65,7 @@ test('maintenance preserves defaults and failing lychee invocation', () => {
   assert.deepEqual(workflow.jobs, { 'check-links': {
     name: 'Check docs links', 'runs-on': 'ubuntu-latest', 'timeout-minutes': 10,
     steps: [{ ...checkout, with: { submodules: 'recursive' } }, {
-      name: 'Check links', uses: 'lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8',
+      name: 'Check links', uses: 'lycheeverse/lychee-action@v2.9.0',
       with: {
         args: '--no-progress --exclude-loopback ${{ inputs.link-check-excludes }} ${{ inputs.link-check-paths }}\n',
         fail: true,
@@ -106,7 +106,7 @@ test('pilot Task succeeds, propagates failure, and rejects absent contracts', ()
   }
 });
 
-test('pilot callers live outside producer workflows and target the producer branch', () => {
+test('pilot callers live outside producer workflows and target a fixed version', () => {
   for (const [file, job, workflowName] of [
     ['validate', 'validate', 'validate'],
     ['devcontainer-test', 'test', 'devcontainer-test'],
@@ -114,7 +114,7 @@ test('pilot callers live outside producer workflows and target the producer bran
   ]) {
     const caller = yaml.load(readFileSync(`fixtures/pilot/.github/workflows/${file}.yml`, 'utf8'));
     assert.equal(caller.jobs[job].uses,
-      `Gildraen/ci-workflows/.github/workflows/reusable-${workflowName}.yml@feat/component-extraction`);
+      `Gildraen/ci-workflows/.github/workflows/reusable-${workflowName}.yml@v0.1.0-rc.1`);
     assert.equal(caller.permissions.contents, 'read');
   }
   const container = JSON.parse(readFileSync('fixtures/pilot/.devcontainer/devcontainer.json', 'utf8'));

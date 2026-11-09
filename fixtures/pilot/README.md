@@ -11,7 +11,8 @@ with an error; `missing` is deliberately not defined.
 
 ## GitHub Execution
 
-The producer branch must be published before these callers can resolve it.
+The callers select the producer's fixed version tag `v0.1.0-rc.1`, a prerelease,
+not a stable release. That tag must be published before the callers can resolve it.
 The contents of this fixture belong at the root of a separate consumer
 repository, for example `Gildraen/ci-workflows-consumer-pilot`. Its three YAML
 files belong in that repository's `.github/workflows`, not in the producer's
