@@ -14,9 +14,10 @@ script is required by the reusable workflows.
 
 All three expose `workflow_call` only, with no outputs or declared secrets.
 They do not declare permissions; the caller controls token permissions.
-`validate` passes `secrets.GITHUB_TOKEN` to Task setup. Actions use full version
-tags in the workflow files. The candidate workflow consumption version is
-`v0.1.0-rc.1`, a prerelease, not a stable release.
+`validate` passes `secrets.GITHUB_TOKEN` to Task setup. Actions and reusable
+workflows are pinned to commit SHAs and retain their version tags in comments
+for Renovate. The candidate workflow tag is `v0.1.0-rc.1`, a prerelease, not a
+stable release; it resolves to `b8cc1c66c153e49887f0c63baa4a1aa238998b10`.
 
 ### Validate
 
@@ -60,6 +61,7 @@ Remote Taskfiles or establish cross-repository GitHub access.
 
 [fixtures/pilot](fixtures/pilot/README.md) contains an independent consumer
 Taskfile, Dev Container and three `workflow_dispatch` callers targeting
-`Gildraen/ci-workflows@v0.1.0-rc.1`. Files under its nested
+`Gildraen/ci-workflows@b8cc1c66c153e49887f0c63baa4a1aa238998b10` (tag
+`v0.1.0-rc.1`). Files under its nested
 `.github/workflows` are templates, not active producer workflows. They must
 be placed at the root of another repository to execute as consumer workflows.

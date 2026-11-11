@@ -11,8 +11,9 @@ with an error; `missing` is deliberately not defined.
 
 ## GitHub Execution
 
-The callers select the producer's fixed version tag `v0.1.0-rc.1`, a prerelease,
-not a stable release. That tag must be published before the callers can resolve it.
+The callers pin producer commit `b8cc1c66c153e49887f0c63baa4a1aa238998b10` and
+retain the fixed version tag `v0.1.0-rc.1` in comments for Renovate. The tag is a
+prerelease, not a stable release, and must be published before callers can resolve it.
 The contents of this fixture belong at the root of a separate consumer
 repository, for example `Gildraen/ci-workflows-consumer-pilot`. Its three YAML
 files belong in that repository's `.github/workflows`, not in the producer's
