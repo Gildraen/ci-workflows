@@ -1,0 +1,10 @@
+{
+  "name": "ci-workflows",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.cjs"
+  },
+  "devDependencies": {
+    "js-yaml": "4.3.2"
+  }
+}

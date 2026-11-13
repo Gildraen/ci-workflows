@@ -1,0 +1,21 @@
+version: '3'
+
+tasks:
+  default:
+    cmds:
+      - task --list
+  validate:
+    desc: Parse workflows and Taskfiles; run actionlint when available.
+    cmds:
+      - node --test tests/syntax.test.cjs
+      - task --list >/dev/null
+      - |
+        if command -v actionlint >/dev/null 2>&1; then
+          actionlint .github/workflows/*.yml
+        else
+          printf 'actionlint unavailable; YAML syntax checked only.\n'
+        fi
+  test:
+    desc: Check reusable workflow contracts and exclusion handling.
+    cmds:
+      - node --test tests/contracts.test.cjs

@@ -1,0 +1,51 @@
+name: reusable-maintenance
+
+on:
+  workflow_call:
+    inputs:
+      link-check-paths:
+        description: Glob patterns (space-separated) of files to check for broken links.
+        type: string
+        default: "docs/**/*.md README.md AGENTS.md"
+      link-check-excludes:
+        description: Extra lychee --exclude patterns (space-separated).
+        type: string
+        default: ""
+
+jobs:
+  check-links:
+    name: Check docs links
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+
+      - name: Add link exclusions
+        if: inputs.link-check-excludes != ''
+        env:
+          LINK_CHECK_EXCLUDES: ${{ inputs.link-check-excludes }}
+        run: |
+          read -r -a patterns <<< "$LINK_CHECK_EXCLUDES"
+          printf '\n' >> .lycheeignore
+          printf '%s\n' "${patterns[@]}" >> .lycheeignore
+
+      - name: Prepare link inputs
+        id: link-inputs
+        env:
+          LINK_CHECK_PATHS: ${{ inputs.link-check-paths }}
+        run: |
+          read -r -a patterns <<< "$LINK_CHECK_PATHS"
+          input_file="$(mktemp "$RUNNER_TEMP/lychee-inputs.XXXXXX")"
+          printf '%s\n' "${patterns[@]}" > "$input_file"
+          printf 'file=%s\n' "$input_file" >> "$GITHUB_OUTPUT"
+
+      - name: Check links
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: >
+            --no-progress
+            --exclude-loopback
+            --files-from '${{ steps.link-inputs.outputs.file }}'
+          fail: true
