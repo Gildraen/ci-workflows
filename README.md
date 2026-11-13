@@ -8,7 +8,7 @@ script is required by the reusable workflows.
 
 | Workflow | Inputs and defaults | Consumer contract |
 | --- | --- | --- |
-| [reusable-validate](.github/workflows/reusable-validate.yml) | `task-name`: string, `validate` | Runs `task ${{ inputs.task-name }}` on Ubuntu, timeout 10 minutes. |
+| [reusable-validate](.github/workflows/reusable-validate.yml) | `task-name`: string, `validate` | Runs `task ${{ inputs.task-name }}` at the checkout root on Ubuntu, timeout 10 minutes. |
 | [reusable-devcontainer-test](.github/workflows/reusable-devcontainer-test.yml) | None | Runs `task test` through `.devcontainer/devcontainer.json`, timeout 20 minutes, `push: never`. |
 | [reusable-maintenance](.github/workflows/reusable-maintenance.yml) | `link-check-paths`: string, `docs/**/*.md README.md AGENTS.md`; `link-check-excludes`: string, empty | Runs lychee on Ubuntu, timeout 10 minutes, `--no-progress --exclude-loopback`, `fail: true`. |
 
@@ -16,8 +16,7 @@ All three expose `workflow_call` only, with no outputs or declared secrets.
 They do not declare permissions; the caller controls token permissions.
 `validate` passes `secrets.GITHUB_TOKEN` to Task setup. Actions and reusable
 workflows are pinned to commit SHAs and retain their version tags in comments
-for Renovate. The candidate workflow tag is `v0.1.0-rc.1`, a prerelease, not a
-stable release; it resolves to `b8cc1c66c153e49887f0c63baa4a1aa238998b10`.
+for Renovate.
 
 ### Validate
 
@@ -28,8 +27,10 @@ with `${{ runner.os }}-task-` as the restore prefix.
 The Task command receives `TASK_REMOTE_TRUSTED_HOSTS=github.com`. This setting
 is not applied to the devcontainer test. `task-name` is interpolated directly
 into the shell command and must be controlled by the caller; it is not an
-untrusted free-text interface. Maintenance inputs are inserted into lychee
-arguments as space-separated patterns, not parsed as an array by this workflow.
+untrusted free-text interface. Maintenance paths are space-separated patterns
+passed literally to lychee through a temporary input file, without shell glob
+expansion. Exclusion patterns are space-separated and appended literally to
+the consumer's `.lycheeignore`, preserving existing exclusions.
 
 ### Consumer Environment
 
@@ -40,7 +41,7 @@ including `AGENTS.md`; callers can override the paths and excludes.
 
 ## Local Checks
 
-Requirements: Node.js with `node:test`, npm, Go Task `3.53.1` or later. Install
+Requirements: Bash, Node.js with `node:test`, npm, Go Task `3.53.1` or later. Install
 dependencies with `npm ci`, then run:
 
 ```sh
@@ -48,20 +49,10 @@ task validate
 task test
 ```
 
-`validate` parses producer and pilot workflow YAML, parses and lists both
-Taskfiles, and runs `actionlint` if available. Its absence is reported, not
-treated as proof of GitHub Actions validity. `test` checks reusable contracts,
-pilot references, Task success/failure, absent tasks/Taskfile, and the trust
-environment received by the pilot task.
+`validate` parses the library's workflow YAML, parses and lists its Taskfile,
+and runs `actionlint` if available. Its absence is reported, not treated as
+proof of GitHub Actions validity. `test` checks reusable workflow contracts,
+the producer CI triggers, and literal exclusion handling.
 
 These checks do not execute actions, build a devcontainer, run lychee, fetch
 Remote Taskfiles or establish cross-repository GitHub access.
-
-## Consumer Pilot
-
-[fixtures/pilot](fixtures/pilot/README.md) contains an independent consumer
-Taskfile, Dev Container and three `workflow_dispatch` callers targeting
-`Gildraen/ci-workflows@b8cc1c66c153e49887f0c63baa4a1aa238998b10` (tag
-`v0.1.0-rc.1`). Files under its nested
-`.github/workflows` are templates, not active producer workflows. They must
-be placed at the root of another repository to execute as consumer workflows.
