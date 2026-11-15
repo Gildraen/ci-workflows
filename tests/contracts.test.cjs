@@ -32,7 +32,7 @@ test('validate preserves inputs, cache, Task version, trust and command', () => 
         },
       }, {
           uses: 'go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e',
-          with: { version: '3.53.1', 'repo-token': '${{ secrets.GITHUB_TOKEN }}' },
+          with: { version: '3.53.1' },
         }, {
           name: 'Run consumer validate contract',
           env: { TASK_REMOTE_TRUSTED_HOSTS: 'github.com' },
