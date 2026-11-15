@@ -16,7 +16,8 @@ test('validate preserves inputs, cache, Task version, trust and command', () => 
     workflow_call: {
       inputs: {
         'task-name': { description: 'Task to run for the "validate" contract.', type: 'string', default: 'validate' },
-      }
+      },
+      secrets: { GITHUB_TOKEN: { required: false } },
     }
   });
   assert.deepEqual(workflow.jobs, {

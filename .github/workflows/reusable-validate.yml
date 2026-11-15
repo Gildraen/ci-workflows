@@ -7,6 +7,9 @@ on:
         description: Task to run for the "validate" contract.
         type: string
         default: validate
+    secrets:
+      GITHUB_TOKEN:
+        required: false
 
 jobs:
   validate:
