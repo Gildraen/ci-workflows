@@ -162,7 +162,7 @@ test('producer CI validates the library on main and pull requests', () => {
   assert.deepEqual(workflow.on.push.branches, ['main']);
   assert.ok(Object.hasOwn(workflow.on, 'pull_request'));
   assert.equal(workflow.on.pull_request, null);
-  assert.deepEqual(Object.keys(workflow.jobs), ['validate']);
+  assert.deepEqual(Object.keys(workflow.jobs), ['validate', 'release']);
   assert.equal(workflow.jobs.validate.if, undefined);
   for (const command of ['npm ci', 'task validate && task test']) {
     const step = workflow.jobs.validate.steps.find(step => step.run === command);
@@ -170,4 +170,26 @@ test('producer CI validates the library on main and pull requests', () => {
     assert.equal(step.if, undefined);
     assert.equal(step['continue-on-error'], undefined);
   }
+  const release = workflow.jobs.release;
+  assert.equal(release.needs, 'validate');
+  assert.equal(release.if, "github.event_name == 'push' && github.ref == 'refs/heads/main'");
+  assert.deepEqual(release.permissions, {
+    contents: 'write',
+    issues: 'write',
+    'pull-requests': 'write',
+  });
+  assert.equal(release.steps[0].uses,
+    'googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7');
+  assert.equal(release.steps[0].with.token,
+    '${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}');
+});
+
+test('release config starts from the stable no-v baseline', () => {
+  const config = JSON.parse(readFileSync('release-please-config.json', 'utf8'));
+  const manifest = JSON.parse(readFileSync('.release-please-manifest.json', 'utf8'));
+  assert.equal(config['include-v-in-tag'], false);
+  assert.equal(config['bootstrap-sha'], '62f1721ea92ffd7275f4e4e2c60727b486d7def1');
+  assert.equal(config.packages['.']['version-file'], 'version.txt');
+  assert.equal(manifest['.'], '0.1.0');
+  assert.equal(readFileSync('version.txt', 'utf8').trim(), manifest['.']);
 });

@@ -56,3 +56,16 @@ the producer CI triggers, and literal exclusion handling.
 
 These checks do not execute actions, build a devcontainer, run lychee, fetch
 Remote Taskfiles or establish cross-repository GitHub access.
+
+## Releases
+
+After `validate` succeeds on a push to `main`, Release Please opens or updates
+a release PR from Conventional Commits. Merge that PR to create the GitHub
+Release and a stable tag without `v`; the historical `v` tag remains unchanged.
+The baseline is recorded in `version.txt` and
+`.release-please-manifest.json`.
+
+Configure `RELEASE_PLEASE_TOKEN` as a fine-grained repository secret so CI runs
+automatically on the release PR. GitHub suppresses workflow runs for pull
+requests created with `GITHUB_TOKEN`; without the secret, required PR checks
+may not run and must be handled before merging.
