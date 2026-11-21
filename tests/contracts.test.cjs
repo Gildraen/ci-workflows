@@ -174,6 +174,7 @@ test('producer CI validates the library on main and pull requests', () => {
   assert.deepEqual(releaseWorkflow.on.workflow_run, {
     workflows: ['validate'],
     types: ['completed'],
+    branches: ['main'],
   });
   const release = releaseWorkflow.jobs.release;
   assert.equal(release.if,
