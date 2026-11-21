@@ -72,9 +72,7 @@ historical `v` tag remains unchanged. The producer's baseline is recorded in
 `version.txt` and `.release-please-manifest.json`.
 
 Install the Release Please GitHub App on each producer repository with
-Contents, Issues, and Pull requests write permissions. Configure the
-`RELEASE_PLEASE_APP_CLIENT_ID` variable and `RELEASE_PLEASE_APP_PRIVATE_KEY`
-secret so they are available to each caller. Use an organization variable and
-secret restricted to selected repositories when available; otherwise configure
-the variable and secret in each repository. Release PRs are created with an App
-token so their normal CI checks can run.
+Contents, Issues, and Pull requests write permissions. Configure repository
+variable `RELEASE_PLEASE_APP_CLIENT_ID` and repository Actions secret
+`RELEASE_PLEASE_APP_PRIVATE_KEY` in every caller. Release PRs are created with
+an App token so their normal CI checks can run.
