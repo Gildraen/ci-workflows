@@ -12,13 +12,14 @@ local producer script is required by the reusable workflows.
 | [reusable-validate](.github/workflows/reusable-validate.yml) | `task-name`: string, `validate` | Runs `task ${{ inputs.task-name }}` at the checkout root on Ubuntu, timeout 10 minutes. |
 | [reusable-devcontainer-test](.github/workflows/reusable-devcontainer-test.yml) | None | Runs `task test` through `.devcontainer/devcontainer.json`, timeout 20 minutes, `push: never`. |
 | [reusable-maintenance](.github/workflows/reusable-maintenance.yml) | `link-check-paths`: string, `docs/**/*.md README.md AGENTS.md`; `link-check-excludes`: string, empty | Runs lychee on Ubuntu, timeout 10 minutes, `--no-progress --exclude-loopback`, `fail: true`. |
-| [reusable-release-please](.github/workflows/reusable-release-please.yml) | `config-file`, `manifest-file`, `target-branch`, required `expected-sha`; token secret required | Opens or updates a Release Please PR only when the validated SHA is still the target branch tip. |
+| [reusable-release-please](.github/workflows/reusable-release-please.yml) | `config-file`, `manifest-file`, `target-branch`, required `expected-sha` and `app-client-id`; required `app-private-key` secret | Opens or updates a Release Please PR using a repository-scoped GitHub App token, only when the validated SHA is still the target branch tip. |
 
 All four expose `workflow_call` only, with no outputs. The release workflow
-declares the write permissions it needs; callers must grant those permissions
-to the reusable-workflow job. `validate` passes `secrets.GITHUB_TOKEN` to Task
-setup. Actions and reusable workflows are pinned to commit SHAs and retain
-their version tags in comments for Renovate.
+uses the caller's `GITHUB_TOKEN` for a read-only SHA check, then mints a
+repository-scoped App token with only the Release Please write permissions.
+`validate` passes `secrets.GITHUB_TOKEN` to Task setup. Actions and reusable
+workflows are pinned to commit SHAs and retain their version tags in comments
+for Renovate.
 
 ### Validate
 
@@ -70,7 +71,8 @@ Merge that PR to create the GitHub Release and a stable tag without `v`; the
 historical `v` tag remains unchanged. The producer's baseline is recorded in
 `version.txt` and `.release-please-manifest.json`.
 
-Configure `RELEASE_PLEASE_TOKEN` as a fine-grained repository secret so CI runs
-automatically on the release PR. GitHub suppresses workflow runs for pull
-requests created with `GITHUB_TOKEN`; without the secret, required PR checks
-may not run and must be handled before merging.
+Install the Release Please GitHub App on each producer repository with
+Contents, Issues, and Pull requests write permissions. Configure repository
+variable `RELEASE_PLEASE_APP_CLIENT_ID` and repository Actions secret
+`RELEASE_PLEASE_APP_PRIVATE_KEY` in every caller. Release PRs are created with
+an App token so their normal CI checks can run.
