@@ -12,7 +12,7 @@ local producer script is required by the reusable workflows.
 | [reusable-validate](.github/workflows/reusable-validate.yml) | `task-name`: string, `validate` | Runs `task ${{ inputs.task-name }}` at the checkout root on Ubuntu, timeout 10 minutes. |
 | [reusable-devcontainer-test](.github/workflows/reusable-devcontainer-test.yml) | None | Runs `task test` through `.devcontainer/devcontainer.json`, timeout 20 minutes, `push: never`. |
 | [reusable-maintenance](.github/workflows/reusable-maintenance.yml) | `link-check-paths`: string, `docs/**/*.md README.md AGENTS.md`; `link-check-excludes`: string, empty | Runs lychee on Ubuntu, timeout 10 minutes, `--no-progress --exclude-loopback`, `fail: true`. |
-| [reusable-release-please](.github/workflows/reusable-release-please.yml) | `config-file`, `manifest-file`, `target-branch`; token secret required | Opens or updates a Release Please PR using the caller's configuration and token. |
+| [reusable-release-please](.github/workflows/reusable-release-please.yml) | `config-file`, `manifest-file`, `target-branch`, required `expected-sha`; token secret required | Opens or updates a Release Please PR only when the validated SHA is still the target branch tip. |
 
 All four expose `workflow_call` only, with no outputs. The release workflow
 declares the write permissions it needs; callers must grant those permissions
@@ -61,9 +61,11 @@ Remote Taskfiles or establish cross-repository GitHub access.
 
 ## Releases
 
-After the producer's validation succeeds on a push to `main`, its caller job
-invokes `reusable-release-please` with the repository's config, manifest, and
-token. Release Please opens or updates a release PR from Conventional Commits.
+After the producer's validation succeeds on a push to `main`, a separate
+`release-please.yml` workflow listens for that completed run and calls
+`reusable-release-please` with the repository's config, manifest, and token.
+It ignores failed runs, pull requests, and pushes to other branches. Release
+Please opens or updates a release PR from Conventional Commits.
 Merge that PR to create the GitHub Release and a stable tag without `v`; the
 historical `v` tag remains unchanged. The producer's baseline is recorded in
 `version.txt` and `.release-please-manifest.json`.

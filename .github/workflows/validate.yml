@@ -18,19 +18,3 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - run: npm ci
       - run: task validate && task test
-
-  release:
-    name: Open or update release PR
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: validate
-    permissions:
-      contents: write
-      issues: write
-      pull-requests: write
-    uses: ./.github/workflows/reusable-release-please.yml
-    with:
-      config-file: release-please-config.json
-      manifest-file: .release-please-manifest.json
-      target-branch: main
-    secrets:
-      release-please-token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}

@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { readFileSync, writeFileSync, mkdirSync, mkdtempSync, existsSync, rmSync } = require('node:fs');
+const { readFileSync, writeFileSync, mkdirSync, mkdtempSync, existsSync, rmSync, chmodSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const { join } = require('node:path');
 const { spawnSync } = require('node:child_process');
@@ -162,7 +162,7 @@ test('producer CI validates the library on main and pull requests', () => {
   assert.deepEqual(workflow.on.push.branches, ['main']);
   assert.ok(Object.hasOwn(workflow.on, 'pull_request'));
   assert.equal(workflow.on.pull_request, null);
-  assert.deepEqual(Object.keys(workflow.jobs), ['validate', 'release']);
+  assert.deepEqual(Object.keys(workflow.jobs), ['validate']);
   assert.equal(workflow.jobs.validate.if, undefined);
   for (const command of ['npm ci', 'task validate && task test']) {
     const step = workflow.jobs.validate.steps.find(step => step.run === command);
@@ -170,9 +170,14 @@ test('producer CI validates the library on main and pull requests', () => {
     assert.equal(step.if, undefined);
     assert.equal(step['continue-on-error'], undefined);
   }
-  const release = workflow.jobs.release;
-  assert.equal(release.needs, 'validate');
-  assert.equal(release.if, "github.event_name == 'push' && github.ref == 'refs/heads/main'");
+  const releaseWorkflow = yaml.load(readFileSync('.github/workflows/release-please.yml', 'utf8'));
+  assert.deepEqual(releaseWorkflow.on.workflow_run, {
+    workflows: ['validate'],
+    types: ['completed'],
+  });
+  const release = releaseWorkflow.jobs.release;
+  assert.equal(release.if,
+    "github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.event == 'push'");
   assert.deepEqual(release.permissions, {
     contents: 'write',
     issues: 'write',
@@ -183,6 +188,7 @@ test('producer CI validates the library on main and pull requests', () => {
     'config-file': 'release-please-config.json',
     'manifest-file': '.release-please-manifest.json',
     'target-branch': 'main',
+    'expected-sha': '${{ github.event.workflow_run.head_sha }}',
   });
   assert.equal(release.secrets['release-please-token'],
     '${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}');
@@ -207,6 +213,11 @@ test('release workflow exposes configuration and a required token to callers', (
       type: 'string',
       default: 'main',
     },
+    'expected-sha': {
+      description: 'Commit SHA whose successful validation triggered this call.',
+      type: 'string',
+      required: true,
+    },
   });
   assert.equal(workflow.on.workflow_call.secrets['release-please-token'].required, true);
   assert.deepEqual(workflow.permissions, {
@@ -219,14 +230,60 @@ test('release workflow exposes configuration and a required token to callers', (
     'cancel-in-progress': false,
   });
   const release = workflow.jobs.release;
-  assert.equal(release.steps[0].uses,
+  assert.equal(release.steps[0].name, 'Check validated commit is still the target branch tip');
+  assert.equal(release.steps[0].id, 'validated-sha');
+  assert.match(release.steps[0].run, /git\/ref\/heads\/\$\{TARGET_BRANCH\}/);
+  assert.match(release.steps[0].run, /\$EXPECTED_SHA/);
+  assert.equal(release.steps[1].if, "steps.validated-sha.outputs.matches == 'true'");
+  assert.equal(release.steps[1].uses,
     'googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7');
-  assert.deepEqual(release.steps[0].with, {
+  assert.deepEqual(release.steps[1].with, {
     token: '${{ secrets.release-please-token }}',
     'target-branch': '${{ inputs.target-branch }}',
     'config-file': '${{ inputs.config-file }}',
     'manifest-file': '${{ inputs.manifest-file }}',
   });
+});
+
+test('release workflow only runs when the target branch matches the validated SHA', () => {
+  const workflow = yaml.load(readFileSync('.github/workflows/reusable-release-please.yml', 'utf8'));
+  const guard = workflow.jobs.release.steps[0];
+  const directory = mkdtempSync(join(tmpdir(), 'ci-release-sha-'));
+  const fakeBin = join(directory, 'bin');
+  const fakeGh = join(fakeBin, 'gh');
+  try {
+    mkdirSync(fakeBin);
+    writeFileSync(fakeGh, '#!/usr/bin/env bash\nprintf "%s\\n" "$CURRENT_SHA"\n');
+    chmodSync(fakeGh, 0o755);
+    const runGuard = currentSha => {
+      const output = join(directory, `output-${currentSha}`);
+      const result = spawnSync('bash', ['-eu', '-c', guard.run], {
+        env: {
+        ...process.env,
+        PATH: `${fakeBin}:${process.env.PATH}`,
+        REPOSITORY: 'owner/repo',
+        TARGET_BRANCH: 'main',
+        EXPECTED_SHA: 'validated-sha',
+        CURRENT_SHA: currentSha,
+        GH_TOKEN: 'test-token',
+        GITHUB_OUTPUT: output,
+        },
+        encoding: 'utf8',
+      });
+      return { ...result, output: readFileSync(output, 'utf8') };
+    };
+    const current = runGuard('validated-sha');
+    assert.ifError(current.error);
+    assert.equal(current.status, 0, current.stderr);
+    assert.match(current.output, /matches=true/);
+    const stale = runGuard('newer-sha');
+    assert.ifError(stale.error);
+    assert.equal(stale.status, 0, stale.stderr);
+    assert.match(stale.output, /matches=false/);
+    assert.match(stale.stdout, /advanced after validation/);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });
 
 test('release config starts from the stable no-v baseline', () => {
