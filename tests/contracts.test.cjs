@@ -162,6 +162,7 @@ test('producer CI validates the library on main and pull requests', () => {
   assert.deepEqual(workflow.on.push.branches, ['main']);
   assert.ok(Object.hasOwn(workflow.on, 'pull_request'));
   assert.equal(workflow.on.pull_request, null);
+  assert.equal(workflow.on.workflow_dispatch, undefined);
   assert.deepEqual(Object.keys(workflow.jobs), ['validate']);
   assert.equal(workflow.jobs.validate.if, undefined);
   for (const command of ['npm ci', 'task validate && task test']) {
@@ -177,8 +178,7 @@ test('producer CI validates the library on main and pull requests', () => {
     branches: ['main'],
   });
   const release = releaseWorkflow.jobs.release;
-  assert.equal(release.if,
-    "github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'");
+  assert.equal(release.if, "github.event.workflow_run.conclusion == 'success'");
   assert.deepEqual(release.permissions, {
     contents: 'write',
     issues: 'write',

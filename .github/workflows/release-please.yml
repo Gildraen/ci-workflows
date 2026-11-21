@@ -12,7 +12,7 @@ permissions:
 jobs:
   release:
     name: Open or update release PR
-    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    if: github.event.workflow_run.conclusion == 'success'
     permissions:
       contents: write
       issues: write
