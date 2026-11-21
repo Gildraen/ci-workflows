@@ -1,0 +1,61 @@
+name: reusable-release-please
+
+on:
+  workflow_call:
+    inputs:
+      config-file:
+        description: Path to the Release Please configuration file.
+        type: string
+        default: release-please-config.json
+      manifest-file:
+        description: Path to the Release Please manifest file.
+        type: string
+        default: .release-please-manifest.json
+      target-branch:
+        description: Branch that receives the release pull request.
+        type: string
+        default: main
+      expected-sha:
+        description: Commit SHA whose successful validation triggered this call.
+        type: string
+        required: true
+    secrets:
+      release-please-token:
+        description: Token with permission to open release pull requests.
+        required: true
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: release-please-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check validated commit is still the target branch tip
+        id: validated-sha
+        env:
+          GH_TOKEN: ${{ secrets.release-please-token }}
+          REPOSITORY: ${{ github.repository }}
+          TARGET_BRANCH: ${{ inputs.target-branch }}
+          EXPECTED_SHA: ${{ inputs.expected-sha }}
+        run: |
+          current_sha="$(gh api "repos/${REPOSITORY}/git/ref/heads/${TARGET_BRANCH}" --jq .object.sha)"
+          if [[ "$current_sha" != "$EXPECTED_SHA" ]]; then
+            echo "matches=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::${TARGET_BRANCH} advanced after validation; skipping this release run."
+          else
+            echo "matches=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        if: steps.validated-sha.outputs.matches == 'true'
+        with:
+          token: ${{ secrets.release-please-token }}
+          target-branch: ${{ inputs.target-branch }}
+          config-file: ${{ inputs.config-file }}
+          manifest-file: ${{ inputs.manifest-file }}
