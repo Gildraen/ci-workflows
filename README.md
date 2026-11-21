@@ -1,8 +1,9 @@
 # ci-workflows
 
-Portable reusable GitHub Actions workflows. Each workflow checks out the
-calling repository and operates on its files. No DX runtime or local producer
-script is required by the reusable workflows.
+Portable reusable GitHub Actions workflows. File-oriented workflows check out
+the calling repository and operate on its files. The Release Please workflow
+uses the GitHub API and does not check out consumer files. No DX runtime or
+local producer script is required by the reusable workflows.
 
 ## Workflows
 
@@ -11,12 +12,13 @@ script is required by the reusable workflows.
 | [reusable-validate](.github/workflows/reusable-validate.yml) | `task-name`: string, `validate` | Runs `task ${{ inputs.task-name }}` at the checkout root on Ubuntu, timeout 10 minutes. |
 | [reusable-devcontainer-test](.github/workflows/reusable-devcontainer-test.yml) | None | Runs `task test` through `.devcontainer/devcontainer.json`, timeout 20 minutes, `push: never`. |
 | [reusable-maintenance](.github/workflows/reusable-maintenance.yml) | `link-check-paths`: string, `docs/**/*.md README.md AGENTS.md`; `link-check-excludes`: string, empty | Runs lychee on Ubuntu, timeout 10 minutes, `--no-progress --exclude-loopback`, `fail: true`. |
+| [reusable-release-please](.github/workflows/reusable-release-please.yml) | `config-file`, `manifest-file`, `target-branch`; token secret required | Opens or updates a Release Please PR using the caller's configuration and token. |
 
-All three expose `workflow_call` only, with no outputs or declared secrets.
-They do not declare permissions; the caller controls token permissions.
-`validate` passes `secrets.GITHUB_TOKEN` to Task setup. Actions and reusable
-workflows are pinned to commit SHAs and retain their version tags in comments
-for Renovate.
+All four expose `workflow_call` only, with no outputs. The release workflow
+declares the write permissions it needs; callers must grant those permissions
+to the reusable-workflow job. `validate` passes `secrets.GITHUB_TOKEN` to Task
+setup. Actions and reusable workflows are pinned to commit SHAs and retain
+their version tags in comments for Renovate.
 
 ### Validate
 
@@ -59,11 +61,12 @@ Remote Taskfiles or establish cross-repository GitHub access.
 
 ## Releases
 
-After `validate` succeeds on a push to `main`, Release Please opens or updates
-a release PR from Conventional Commits. Merge that PR to create the GitHub
-Release and a stable tag without `v`; the historical `v` tag remains unchanged.
-The baseline is recorded in `version.txt` and
-`.release-please-manifest.json`.
+After the producer's validation succeeds on a push to `main`, its caller job
+invokes `reusable-release-please` with the repository's config, manifest, and
+token. Release Please opens or updates a release PR from Conventional Commits.
+Merge that PR to create the GitHub Release and a stable tag without `v`; the
+historical `v` tag remains unchanged. The producer's baseline is recorded in
+`version.txt` and `.release-please-manifest.json`.
 
 Configure `RELEASE_PLEASE_TOKEN` as a fine-grained repository secret so CI runs
 automatically on the release PR. GitHub suppresses workflow runs for pull

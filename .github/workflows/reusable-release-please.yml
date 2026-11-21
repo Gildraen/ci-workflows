@@ -1,0 +1,41 @@
+name: reusable-release-please
+
+on:
+  workflow_call:
+    inputs:
+      config-file:
+        description: Path to the Release Please configuration file.
+        type: string
+        default: release-please-config.json
+      manifest-file:
+        description: Path to the Release Please manifest file.
+        type: string
+        default: .release-please-manifest.json
+      target-branch:
+        description: Branch that receives the release pull request.
+        type: string
+        default: main
+    secrets:
+      release-please-token:
+        description: Token with permission to open release pull requests.
+        required: true
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: release-please-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ secrets.release-please-token }}
+          target-branch: ${{ inputs.target-branch }}
+          config-file: ${{ inputs.config-file }}
+          manifest-file: ${{ inputs.manifest-file }}

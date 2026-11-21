@@ -178,10 +178,55 @@ test('producer CI validates the library on main and pull requests', () => {
     issues: 'write',
     'pull-requests': 'write',
   });
+  assert.equal(release.uses, './.github/workflows/reusable-release-please.yml');
+  assert.deepEqual(release.with, {
+    'config-file': 'release-please-config.json',
+    'manifest-file': '.release-please-manifest.json',
+    'target-branch': 'main',
+  });
+  assert.equal(release.secrets['release-please-token'],
+    '${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}');
+});
+
+test('release workflow exposes configuration and a required token to callers', () => {
+  const workflow = yaml.load(readFileSync('.github/workflows/reusable-release-please.yml', 'utf8'));
+  assert.equal(workflow.name, 'reusable-release-please');
+  assert.deepEqual(workflow.on.workflow_call.inputs, {
+    'config-file': {
+      description: 'Path to the Release Please configuration file.',
+      type: 'string',
+      default: 'release-please-config.json',
+    },
+    'manifest-file': {
+      description: 'Path to the Release Please manifest file.',
+      type: 'string',
+      default: '.release-please-manifest.json',
+    },
+    'target-branch': {
+      description: 'Branch that receives the release pull request.',
+      type: 'string',
+      default: 'main',
+    },
+  });
+  assert.equal(workflow.on.workflow_call.secrets['release-please-token'].required, true);
+  assert.deepEqual(workflow.permissions, {
+    contents: 'write',
+    issues: 'write',
+    'pull-requests': 'write',
+  });
+  assert.deepEqual(workflow.concurrency, {
+    group: 'release-please-${{ github.repository }}-${{ github.ref }}',
+    'cancel-in-progress': false,
+  });
+  const release = workflow.jobs.release;
   assert.equal(release.steps[0].uses,
     'googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7');
-  assert.equal(release.steps[0].with.token,
-    '${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}');
+  assert.deepEqual(release.steps[0].with, {
+    token: '${{ secrets.release-please-token }}',
+    'target-branch': '${{ inputs.target-branch }}',
+    'config-file': '${{ inputs.config-file }}',
+    'manifest-file': '${{ inputs.manifest-file }}',
+  });
 });
 
 test('release config starts from the stable no-v baseline', () => {
