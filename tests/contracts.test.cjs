@@ -178,7 +178,7 @@ test('producer CI validates the library on main and pull requests', () => {
   });
   const release = releaseWorkflow.jobs.release;
   assert.equal(release.if,
-    "github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.event == 'push'");
+    "github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'");
   assert.deepEqual(release.permissions, {
     contents: 'write',
     issues: 'write',
