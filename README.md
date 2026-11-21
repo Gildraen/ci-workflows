@@ -71,9 +71,10 @@ Merge that PR to create the GitHub Release and a stable tag without `v`; the
 historical `v` tag remains unchanged. The producer's baseline is recorded in
 `version.txt` and `.release-please-manifest.json`.
 
-Install the Release Please GitHub App on the producer repository with Contents,
-Issues, and Pull requests write permissions. Set organization variable
-`RELEASE_PLEASE_APP_CLIENT_ID` and organization secret
-`RELEASE_PLEASE_APP_PRIVATE_KEY`, restricted to the repositories using this
-workflow. Release PRs are created with an App token so their normal CI checks
-can run.
+Install the Release Please GitHub App on each producer repository with
+Contents, Issues, and Pull requests write permissions. Configure the
+`RELEASE_PLEASE_APP_CLIENT_ID` variable and `RELEASE_PLEASE_APP_PRIVATE_KEY`
+secret so they are available to each caller. Use an organization variable and
+secret restricted to selected repositories when available; otherwise configure
+the variable and secret in each repository. Release PRs are created with an App
+token so their normal CI checks can run.
