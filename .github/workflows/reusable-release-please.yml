@@ -19,15 +19,17 @@ on:
         description: Commit SHA whose successful validation triggered this call.
         type: string
         required: true
+      app-client-id:
+        description: Client ID of the GitHub App installed on the caller repository.
+        type: string
+        required: true
     secrets:
-      release-please-token:
-        description: Token with permission to open release pull requests.
+      app-private-key:
+        description: Private key for the GitHub App used to create the release pull request.
         required: true
 
 permissions:
-  contents: write
-  issues: write
-  pull-requests: write
+  contents: read
 
 concurrency:
   group: release-please-${{ github.repository }}-${{ github.ref }}
@@ -40,7 +42,7 @@ jobs:
       - name: Check validated commit is still the target branch tip
         id: validated-sha
         env:
-          GH_TOKEN: ${{ secrets.release-please-token }}
+          GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
           TARGET_BRANCH: ${{ inputs.target-branch }}
           EXPECTED_SHA: ${{ inputs.expected-sha }}
@@ -52,10 +54,20 @@ jobs:
           else
             echo "matches=true" >> "$GITHUB_OUTPUT"
           fi
+      - name: Create repository-scoped GitHub App token
+        id: app-token
+        if: steps.validated-sha.outputs.matches == 'true'
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          client-id: ${{ inputs.app-client-id }}
+          private-key: ${{ secrets.app-private-key }}
+          permission-contents: write
+          permission-issues: write
+          permission-pull-requests: write
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         if: steps.validated-sha.outputs.matches == 'true'
         with:
-          token: ${{ secrets.release-please-token }}
+          token: ${{ steps.app-token.outputs.token }}
           target-branch: ${{ inputs.target-branch }}
           config-file: ${{ inputs.config-file }}
           manifest-file: ${{ inputs.manifest-file }}

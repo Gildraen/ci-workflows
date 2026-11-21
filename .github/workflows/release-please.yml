@@ -14,14 +14,13 @@ jobs:
     name: Open or update release PR
     if: github.event.workflow_run.conclusion == 'success'
     permissions:
-      contents: write
-      issues: write
-      pull-requests: write
+      contents: read
     uses: ./.github/workflows/reusable-release-please.yml
     with:
       config-file: release-please-config.json
       manifest-file: .release-please-manifest.json
       target-branch: main
       expected-sha: ${{ github.event.workflow_run.head_sha }}
+      app-client-id: ${{ vars.RELEASE_PLEASE_APP_CLIENT_ID }}
     secrets:
-      release-please-token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
+      app-private-key: ${{ secrets.RELEASE_PLEASE_APP_PRIVATE_KEY }}

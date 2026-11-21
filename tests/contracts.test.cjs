@@ -180,9 +180,7 @@ test('producer CI validates the library on main and pull requests', () => {
   const release = releaseWorkflow.jobs.release;
   assert.equal(release.if, "github.event.workflow_run.conclusion == 'success'");
   assert.deepEqual(release.permissions, {
-    contents: 'write',
-    issues: 'write',
-    'pull-requests': 'write',
+    contents: 'read',
   });
   assert.equal(release.uses, './.github/workflows/reusable-release-please.yml');
   assert.deepEqual(release.with, {
@@ -190,12 +188,12 @@ test('producer CI validates the library on main and pull requests', () => {
     'manifest-file': '.release-please-manifest.json',
     'target-branch': 'main',
     'expected-sha': '${{ github.event.workflow_run.head_sha }}',
+    'app-client-id': '${{ vars.RELEASE_PLEASE_APP_CLIENT_ID }}',
   });
-  assert.equal(release.secrets['release-please-token'],
-    '${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}');
+  assert.equal(release.secrets['app-private-key'], '${{ secrets.RELEASE_PLEASE_APP_PRIVATE_KEY }}');
 });
 
-test('release workflow exposes configuration and a required token to callers', () => {
+test('release workflow exposes configuration and required App credentials to callers', () => {
   const workflow = yaml.load(readFileSync('.github/workflows/reusable-release-please.yml', 'utf8'));
   assert.equal(workflow.name, 'reusable-release-please');
   assert.deepEqual(workflow.on.workflow_call.inputs, {
@@ -219,13 +217,14 @@ test('release workflow exposes configuration and a required token to callers', (
       type: 'string',
       required: true,
     },
+    'app-client-id': {
+      description: 'Client ID of the GitHub App installed on the caller repository.',
+      type: 'string',
+      required: true,
+    },
   });
-  assert.equal(workflow.on.workflow_call.secrets['release-please-token'].required, true);
-  assert.deepEqual(workflow.permissions, {
-    contents: 'write',
-    issues: 'write',
-    'pull-requests': 'write',
-  });
+  assert.equal(workflow.on.workflow_call.secrets['app-private-key'].required, true);
+  assert.deepEqual(workflow.permissions, { contents: 'read' });
   assert.deepEqual(workflow.concurrency, {
     group: 'release-please-${{ github.repository }}-${{ github.ref }}',
     'cancel-in-progress': false,
@@ -233,13 +232,25 @@ test('release workflow exposes configuration and a required token to callers', (
   const release = workflow.jobs.release;
   assert.equal(release.steps[0].name, 'Check validated commit is still the target branch tip');
   assert.equal(release.steps[0].id, 'validated-sha');
+  assert.equal(release.steps[0].env.GH_TOKEN, '${{ github.token }}');
   assert.match(release.steps[0].run, /git\/ref\/heads\/\$\{TARGET_BRANCH\}/);
   assert.match(release.steps[0].run, /\$EXPECTED_SHA/);
+  assert.equal(release.steps[1].id, 'app-token');
   assert.equal(release.steps[1].if, "steps.validated-sha.outputs.matches == 'true'");
   assert.equal(release.steps[1].uses,
-    'googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7');
+    'actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc');
   assert.deepEqual(release.steps[1].with, {
-    token: '${{ secrets.release-please-token }}',
+    'client-id': '${{ inputs.app-client-id }}',
+    'private-key': '${{ secrets.app-private-key }}',
+    'permission-contents': 'write',
+    'permission-issues': 'write',
+    'permission-pull-requests': 'write',
+  });
+  assert.equal(release.steps[2].if, "steps.validated-sha.outputs.matches == 'true'");
+  assert.equal(release.steps[2].uses,
+    'googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7');
+  assert.deepEqual(release.steps[2].with, {
+    token: '${{ steps.app-token.outputs.token }}',
     'target-branch': '${{ inputs.target-branch }}',
     'config-file': '${{ inputs.config-file }}',
     'manifest-file': '${{ inputs.manifest-file }}',
