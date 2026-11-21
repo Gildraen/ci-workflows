@@ -271,14 +271,14 @@ test('release workflow only runs when the target branch matches the validated SH
       const output = join(directory, `output-${currentSha}`);
       const result = spawnSync('bash', ['-eu', '-c', guard.run], {
         env: {
-        ...process.env,
-        PATH: `${fakeBin}:${process.env.PATH}`,
-        REPOSITORY: 'owner/repo',
-        TARGET_BRANCH: 'main',
-        EXPECTED_SHA: 'validated-sha',
-        CURRENT_SHA: currentSha,
-        GH_TOKEN: 'test-token',
-        GITHUB_OUTPUT: output,
+          ...process.env,
+          PATH: `${fakeBin}:${process.env.PATH}`,
+          REPOSITORY: 'owner/repo',
+          TARGET_BRANCH: 'main',
+          EXPECTED_SHA: 'validated-sha',
+          CURRENT_SHA: currentSha,
+          GH_TOKEN: 'test-token',
+          GITHUB_OUTPUT: output,
         },
         encoding: 'utf8',
       });
@@ -298,12 +298,12 @@ test('release workflow only runs when the target branch matches the validated SH
   }
 });
 
-test('release config starts from the stable no-v baseline', () => {
+test('release config keeps stable no-v versioning', () => {
   const config = JSON.parse(readFileSync('release-please-config.json', 'utf8'));
   const manifest = JSON.parse(readFileSync('.release-please-manifest.json', 'utf8'));
   assert.equal(config['include-v-in-tag'], false);
   assert.equal(config['bootstrap-sha'], '62f1721ea92ffd7275f4e4e2c60727b486d7def1');
   assert.equal(config.packages['.']['version-file'], 'version.txt');
-  assert.equal(manifest['.'], '0.1.0');
+  assert.match(manifest['.'], /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/);
   assert.equal(readFileSync('version.txt', 'utf8').trim(), manifest['.']);
 });
