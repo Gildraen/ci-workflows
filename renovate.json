@@ -1,4 +1,16 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>Gildraen/renovate-config#1.0.0"]
+  "extends": ["github>Gildraen/renovate-config#1.0.0"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Update the actionlint CLI used to validate workflows.",
+      "managerFilePatterns": ["/(^|/)\\.github\\/workflows\\/validate\\.yml$/"],
+      "matchStrings": [
+        "# renovate: datasource=github-releases depName=(?<depName>\\S+)\\n\\s+version: (?<currentValue>\\d+\\.\\d+\\.\\d+)"
+      ],
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "semver"
+    }
+  ]
 }

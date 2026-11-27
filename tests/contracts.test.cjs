@@ -165,6 +165,27 @@ test('producer CI validates the library on main and pull requests', () => {
   assert.equal(workflow.on.workflow_dispatch, undefined);
   assert.deepEqual(Object.keys(workflow.jobs), ['validate']);
   assert.equal(workflow.jobs.validate.if, undefined);
+  const actionlint = workflow.jobs.validate.steps.find(step => step.name === 'Lint GitHub Actions workflows');
+  assert.ok(actionlint, 'producer CI must run actionlint');
+  assert.match(actionlint.uses, /^raven-actions\/actionlint@[0-9a-f]{40}$/);
+  assert.match(actionlint.with.version, /^\d+\.\d+\.\d+$/);
+  assert.equal(actionlint.with['fail-on-error'], 'true');
+  assert.equal(actionlint.with.shellcheck, 'false');
+  assert.equal(actionlint.with.pyflakes, 'false');
+  const renovate = JSON.parse(readFileSync('renovate.json', 'utf8'));
+  const actionlintManager = renovate.customManagers.find(manager =>
+    manager.description.includes('actionlint CLI'),
+  );
+  assert.ok(actionlintManager, 'Renovate must update the actionlint CLI pin');
+  assert.equal(actionlintManager.datasourceTemplate, 'github-releases');
+  const actionlintPin = new RegExp(actionlintManager.matchStrings[0]).exec(
+    readFileSync('.github/workflows/validate.yml', 'utf8'),
+  );
+  assert.equal(actionlintPin?.groups.depName, 'rhysd/actionlint');
+  assert.equal(
+    actionlintPin?.groups.currentValue,
+    actionlint.with.version,
+  );
   for (const command of ['npm ci', 'task validate && task test']) {
     const step = workflow.jobs.validate.steps.find(step => step.run === command);
     assert.ok(step, `Producer CI must run ${command}`);
